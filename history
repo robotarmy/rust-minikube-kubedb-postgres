@@ -39,3 +39,9 @@ DATABASE_URL=$(minikube -n tinker service postgres-expose  --url --format "postg
 echo "DATABASE_URL=$DATABASE_URL" > .env
 
 
+# using diesel with rust
+
+cargo install diesel_cli --no-default-features --features postgres 
+# added features after the fact for uuid, numeric, chrono
+diesel setup
+
