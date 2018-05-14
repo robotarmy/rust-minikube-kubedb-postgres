@@ -1,8 +1,26 @@
+
+minikube start --vm-driver hyperkit  # OS X with Docker for mac edge
+
+
+# --service-acount important for kubernetes-helm 2.9.0 ( no RBAC? role based access control)
+helm init --service-account default 
+# check helm connection
+helm list
+
+helm repo add appscode https://charts.appscode.com/stable/
+
+helm repo update
+helm install appscode/kubedb --name kubedb-operator --namespace kube-system
+
 kubectl create ns tinker
 kubectl create -f pgadmin.yaml
 kubectl get service -n tinker --watch
 minikube service pgadmin -n tinker
 login: admin:admin
+
+
+
+
 
 kubectl create -f postgres-tinker.yaml
 kubectl get pg -n tinker postgres -o wide
