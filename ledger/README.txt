@@ -10,4 +10,7 @@ https://doc.rust-lang.org/1.1.0/book/crates-and-modules.html
 
 Cargo Book
 https://doc.rust-lang.org/cargo/
+----
 
+cargo run --bin list_ledger_entries
+cargo run --bin create_entry
