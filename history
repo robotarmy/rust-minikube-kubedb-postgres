@@ -1,0 +1,23 @@
+kubectl create ns tinker
+kubectl create -f pgadmin.yaml
+kubectl get service -n tinker --watch
+minikube service pgadmin -n tinker
+login: admin:admin
+
+kubectl create -f postgres-tinker.yaml
+kubectl get pg -n tinker postgres -o wide
+kubectl describe pg -n tinker postgres
+kubectl get service -n tinker --selector=kubedb.com/kind=Postgres,kubedb.com/name=postgres
+
+kubectl expose svc -n tinker postgres --name=postgres-expose --port=5432 --protocol=TCP --type=NodePort
+kubectl get svc/postgres-expose -n tinker -o yaml
+
+# lookup port
+kubectl get  -n tinker svc/postgres-expose -o jsonpath='{.spec.ports[0].nodePort}'
+
+PASS=$(kubectl get secrets -n tinker postgres-auth -o jsonpath='{.data.\POSTGRES_PASSWORD}' | base64 -D)
+
+DATABASE_URL=$(minikube -n tinker service postgres-expose  --url --format "postgres://postgres:${PASS}@{{.IP}}:{{.Port}}/rust_tinker")
+echo "DATABASE_URL=$DATABASE_URL" > .env
+
+

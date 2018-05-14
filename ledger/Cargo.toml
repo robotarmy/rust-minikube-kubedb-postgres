@@ -1,0 +1,11 @@
+[package]
+name = "ledger" # the name of the package
+version = "0.1.0"    # the current version, obeying semver
+authors = ["curtis@ram9.cc"]
+
+[dependencies]
+bigdecimal = "0.0.11"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "0.6", features = ["serde", "v4"] }
+diesel = { version = "1.0.0", features = ["postgres", "uuid", "chrono", "numeric"] }
+dotenv = "0.9.0"
