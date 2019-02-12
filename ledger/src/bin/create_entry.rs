@@ -8,6 +8,8 @@ use std::io::{self};
 use bigdecimal::{BigDecimal, Zero};
 use std::str::FromStr;
 
+use self::models::*;
+
 fn main() {
     let connection = establish_connection();
 
@@ -38,6 +40,6 @@ fn main() {
         credit = credit_result.unwrap();
     }
 
-    let entry = create_ledger_entry(&connection, &title, &credit, &debit);
+    let entry = create_ledger_entry(&connection, &title, &CreditAmount(credit), &DebitAmount(debit));
     println!("\nCreated Ledger Entry '{}' with id  '{}'", title, entry.id);
 }

@@ -1,0 +1,189 @@
+setting up minkube again from scratch
+this time with RBAC and argo (https://applatix.com/open-source/argo/get-started/installation)
+
+#pre-install
+#removed previous version of minkube
+#removed ~/.kube and ~/.minikube
+#upgraded Docker for Mac to latest version
+
+
+> brew cask install minikube
+
+> minikube start --extra-config=apiserver.authorization-mode=RBAC --vm-driver hyperkit
+
+> kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
+
+> minikube dashboard
+
+## setup argo
+
+> brew install argoproj/tap/argo
+
+> argo install
+
+> kubectl create rolebinding default-admin --clusterrole=admin --serviceaccount=default:default
+
+Install example
+>  argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml
+
+List example
+> argo list
+
+get details  (name from list result above)
+> argo get coinflip-fpjv8
+get logs from pod (name from get result above)
+> argo logs coinflip-fpjv8-3718756447
+
+expose argo ui
+> kubectl port-forward $(kubectl get pods -n kube-system -l app=argo-ui -o jsonpath='{.items[0].metadata.name}') -n kube-system 8001:8001
+# 127.0.0.1:8001
+
+
+ # https://github.com/kubernetes/helm/blob/master/docs/rbac.md
+
+# 
+# creating an organization level system to install tiller into
+# (ideally also argo?)
+# 
+# and then using tiller access to ram9-dev namespace
+
+> kubectl create namespace ram9-system
+> kubectl create serviceaccount tiller --namespace ram9-system
+
+# this is where tiller will insteall resources
+> kubectl create namespace ram9-dev
+
+This is to give role access to all resources in ram9-dev
+
+full-access.role-tiller.ram9-dev.yaml
+```
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: tiller-manager
+  namespace: ram9-dev
+rules:
+- apiGroups: ["", "extensions", "apps"]
+  resources: ["*"]
+  verbs: ["*"]
+```
+
+kubectl create -f full-access.role-tiller.ram9-dev.yaml
+
+
+This is to link the account tiller to the role that has
+access to ram9-dev resources
+
+rolebinding-tiller.ram9-system.to.ram9-dev.yaml
+```
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: tiller-binding
+  namespace: ram9-dev
+subjects:
+- kind: ServiceAccount
+  name: tiller
+  namespace: ram9-system
+roleRef:
+  kind: Role
+  name: tiller-manager
+  apiGroup: rbac.authorization.k8s.io
+```
+
+kubectl create -f rolebinding-tiller.yaml
+
+accordingly tiller needs to access "configmaps" in from the system to store
+release information
+
+configmap.role-tiller.ram9-system.yaml
+```
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  namespace: ram9-system
+  name: tiller-manager
+rules:
+- apiGroups: ["", "extensions", "apps"]
+  resources: ["configmaps"]
+  verbs: ["*"]
+```
+
+and with this role - another rolebinding
+
+rolebinding-tiller.ram9-system.to.ram9-system.yaml
+```
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: tiller-binding
+  namespace: ram9-system
+subjects:
+- kind: ServiceAccount
+  name: tiller
+  namespace: ram9-system
+roleRef:
+  kind: Role
+  name: tiller-manager
+  apiGroup: rbac.authorization.k8s.io
+```
+
+# helm is running in my local env
+# if helm was running in the cluster i would need to create
+# a user and a role and a binding that could access the tiller namespace
+# to do this
+> helm init --service-account tiller --tiller-namespace ram9-system
+
+now using helm  to install will require the tiller-namespace
+
+an alias would help with this. $TILLER_NAMESPACE can also be used
+
+helm-ram9() {
+  helm --tiller-namespace ram9-system $*
+}
+#
+# installing kubedb
+
+# This script installs into namespace kube-system - to install into our system namespace
+# download the script and use its' options
+> curl -OfsSL https://raw.githubusercontent.com/kubedb/cli/0.8.0/hack/deploy/kubedb.sh
+> chmod a+x ./kubedb.sh
+> ./kubedb.sh -h
+> ./kubedb.sh --namespace=ram9-system
+
+to see the result (regardless of namespace )
+> kubectl get pods --all-namespaces -l app=kubedb --watch
+
+confirming crd group registered ( CRD ) is a Custom Resource Definition
+in KubeDB these represent the kinds of databases that can be run
+
+> kubectl get crd -l app=kubedb
+
+
+Set up Database is ram9-data namespace
+
+> kubectl create namespace ram9-data
+
+# using postgres-conf/*
+
+> kubectl create -f pdadmin.yaml
+> kubectl create -f postgres.yaml
+
+kubedb operator in RBAC mode has already created required permisions
+following  https://kubedb.com/docs/0.8.0/guides/postgres/quickstart/rbac/
+
+ reviewing permissions below 
+
+# kubedb operator created a role for postgres
+> kubectl get role -n ram9-data postgres -o yaml
+ 
+# kubedb operator also created a service account for postgres
+> kubectl get serviceaccount -n ram9-data postgres -o yaml
+
+# kubedb operateor also created rolebindings
+> kubectl get rolebinding -n ram9-data postgres -o yaml
+
+
+
+
+

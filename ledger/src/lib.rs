@@ -5,11 +5,18 @@ pub mod models;
 extern crate diesel;
 extern crate dotenv;
 extern crate bigdecimal;
+extern crate uuid;
+use uuid::Uuid;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
+use diesel::Connection;
+use diesel::result::Error;
 use dotenv::dotenv;
 use std::env;
+
+use schema::ledger_entries;
+use self::models::*;
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -20,23 +27,25 @@ pub fn establish_connection() -> PgConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-use self::models::{LedgerEntry,
-                   NewLedgerEntry,
-                   DebitAmount,
-                   CreditAmount};
+
+pub fn delete_ledger_entry(
+    conn: &PgConnection,
+    uuid: &Uuid
+) -> Result<usize, Error> {
+    diesel::delete(ledger_entries::table.find(uuid)).execute(conn)
+}
 
 pub fn create_ledger_entry<'a>(
-    conn: &PgConnection,
-    title: &'a String,
+    conn:   &PgConnection,
+    title:  &'a String,
     credit: &'a CreditAmount,
-    debit: &'a DebitAmount
+    debit:  &'a DebitAmount
 ) -> LedgerEntry {
-    use schema::ledger_entries;
 
     let new_entry = NewLedgerEntry {
-        title: title,
+        title:  title,
         credit: credit,
-        debit: debit,
+        debit:  debit,
     };
 
     diesel::insert_into(ledger_entries::table)

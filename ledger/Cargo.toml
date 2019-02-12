@@ -4,7 +4,7 @@ version = "0.1.0"    # the current version, obeying semver
 authors = ["curtis@ram9.cc"]
 
 [dependencies]
-bigdecimal = "0.0.11"
+bigdecimal = { version = ">= 0.0.10, < 0.0.12"}
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "0.6", features = ["serde", "v4"] }
 diesel = { version = "1.0.0", features = ["postgres", "uuid", "chrono", "numeric"] }
